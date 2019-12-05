@@ -1,0 +1,7 @@
+{
+	"stocklist": ["SPXL", "SDS"],
+	"strategy": {
+					"MACD":{"FastEMA":"12", "MACDEMA":"9", "SlowEMA":"26"},
+					"stake": "50"
+				}
+}

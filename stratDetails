@@ -1,0 +1,12 @@
+• Buy SPXL on the hourly as soon as MACD (12,26,9)>Signal Line
+• Buy SDS (this is the inverse of SPXL) on the hourly as soon as MACD>Signal Line
+• In order to buy for both SPXL and SDS, MACD has to be positive and the previous MACD value also has to be positive
+
+• Alert user via email and SMS when an order is placed and what the buy price is
+• Sell SPXL as soon as MACD<Signal Line
+• Sell SPXL if MACD>Signal line, but has lost $.60 off the buy price
+• Sell SDS as soon as MACD<Signal Line
+• Sell SDS if MACD>Signal line, but has lost $.60 of the buy price
+• Alert user via email and SMS when an order is sold and what the sell price is
+• Alert user daily of PnL via email and SMS
+• MACD&Signal line only updates on the hour, we might need to calculate MACD and Signal Line every 5 or 15 minutes so we can make an order immediately
