@@ -2,7 +2,7 @@ import json
 
 def readJson(filename):
     
-    with open('config/'+filename, 'r') as read_file:
+    with open('IBbot/config/'+filename, 'r') as read_file:
         data = json.load(read_file)
     return data
 
@@ -14,6 +14,6 @@ def jsonAdd(filename, data_dict):
 
 def jsonWrite(filename, data_dict):
 	
-    with open('config/'+filename, 'w') as write_file:
+    with open('IBbot/config/'+filename, 'w') as write_file:
         json.dump(data_dict, write_file, default=str)
         write_file.close()

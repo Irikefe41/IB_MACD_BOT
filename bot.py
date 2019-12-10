@@ -1,8 +1,9 @@
 import os
 import sys
 import backtrader as bt 
-from utils.parseJSON import readJson
-from strategy.myMACD import MACDstrat
+from .utils.parseJSON import readJson
+from .strategy.myMACD import MACDstrat
+
 
 config = readJson('config.json')
 print("Current Settings: \n{}".format(config))
