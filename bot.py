@@ -17,9 +17,12 @@ if __name__ == '__main__':
         cerebro = bt.Cerebro(stdstats=False)
         IB = bt.stores.IBStore(port=7497)
         data = IB.getdata(dataname=config['stocklist'][0],timeframe=bt.TimeFrame.Ticks, rtbar=True)
+        data0 = IB.getdata(dataname=config['stocklist'][1],timeframe=bt.TimeFrame.Ticks, rtbar=True)
         # cerebro.broker = IB.getbroker()
         cerebro.resampledata(data, timeframe=bt.TimeFrame.Minutes,compression=60)
         cerebro.adddata(data)
+        cerebro.resampledata(data0, timeframe=bt.TimeFrame.Minutes,compression=60)
+        cerebro.adddata(data0)
 
         cerebro.addstrategy(MACDstrat
    			)

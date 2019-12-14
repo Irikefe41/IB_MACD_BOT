@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 import backtrader as bt
 from ..utils.parseJSON import readJson
 from ..notifier.publish_signals import publish
@@ -9,7 +9,7 @@ class MACDstrat(bt.Strategy):
 					macd2=26,
 					macdsig=9,
 					pstake=50,
-					stopafter=0,
+					stopafter=10000,
 					stop_loss=0.6)
 
 
@@ -17,51 +17,55 @@ class MACDstrat(bt.Strategy):
 
 		self.counttostop = 0
 		self.datastatus = 0
+		self.macd = dict()
+		self.mcross = dict()
+		self.order = dict()
+		self.sl_ord = dict()
 
 		if self.p.macd1 > self.p.macd2:
 			raise ValueError("The MACD strategy cannot have the fast moving average's window be greater than the slow moving average window.")
 
-		self.macd = bt.indicators.MACD(self.data,period_me1=self.p.macd1,period_me2=self.p.macd2,period_signal=self.p.macdsig)
-		self.mcross = bt.indicators.CrossOver(self.macd.macd, self.macd.signal)
-		self.orderid = list()
-	 
-	    # To set the stop price
-	    # self.atr = bt.indicators.ATR(self.data, period=self.p.atrperiod)
+		for d in self.getdatanames():
+			self.macd[d] = bt.indicators.MACD(self.getdatabyname(d),period_me1=self.p.macd1,period_me2=self.p.macd2,period_signal=self.p.macdsig)
+			self.mcross[d] = bt.indicators.CrossOver(self.macd[d].macd, self.macd[d].signal)
 
-	    # self.sma = bt.indicators.SMA(self.data, period=self.p.smaperiod)
-	    # self.smadir = self.sma - self.sma(-self.p.dirperiod)
 
-	def next(self):
+	def next(self):		
 
-		# for d in self.getdatanames():
+		for d in self.getdatanames():
 
-		dt = self.data.datetime.datetime(0)
-		portfolio_value = self.broker.get_value()
-		track_time = datetime.datetime.now()
-		
+			# print(self.getdatabyname(d).datetime.datetime(0))
+			today = datetime.now() - timedelta(minutes=10)
+			dt = self.getdatabyname(d).datetime.datetime(0)			
 
-		print('Log{} -Timestamp: {} - Position_Size: {} - Portfolio_Value {}'.format(len(self), dt.isoformat(), self.position.size, portfolio_value))
-		# print('MACD value length  {}'.format(len(self.macd.macd)))
-		if track_time.minute == 1:
-			publish("Close price at {} is {}".format(track_time, self.data.close[0]))
+			if dt <= today:
+				portfolio_value = self.broker.get_value()
+				track_time = datetime.now() - timedelta(minutes=50)
 
-		pos = self.getposition().size or 0
+				print('Log{} -Timestamp: {} - Position_Size: {} - Portfolio_Value {}'.format(len(self), dt.isoformat(), self.position.size, portfolio_value))
+				
+				if dt.minute == 0 and dt > track_time:
+					
+					publish("{} Close price: {}\nTimestamp: {}".format(d,self.getdatabyname(d).close[0],dt.isoformat()))
 
-		if pos == 0:
-			if self.mcross[0] > 0 and self.macd.macd[0] > 0 and self.macd.macd[-1] > 0:
-				self.stop_price = self.data.close[0] - self.p.stop_loss
-				self.order = self.order_target_percent(target=self.p.pstake/100)
-				self.sl_ord = self.sell(size=self.order.size, exectype=bt.Order.Stop, price=self.stop_price)
-				self.sl_ord.addinfo(name='Long Stop Loss')
+				pos = self.getpositionbyname(d).size or 0
 
-		elif self.mcross[0] < 0:
-			# self.order_target_size(target=-self.position.size)
-			cls_ord = self.cancel(self.sl_ord)
-			# cls_ord.addinfo(name="Close Stop Loss Order")
-			self.sell(size=self.order.size)
+				if pos == 0:
+					if self.mcross[d][0] > 0 and self.macd[d].macd[0] > 0 and self.macd[d].macd[-1] > 0:
+						self.stop_price = self.getdatabyname(d).close[0] - self.p.stop_loss
+						self.order[d] = self.order_target_percent(data=self.getdatabyname(d),target=self.p.pstake/100)
+						self.sl_ord[d] = self.sell(data=self.getdatabyname(d),size=self.order[d].size, exectype=bt.Order.Stop, price=self.stop_price)
+						self.sl_ord[d].addinfo(name='Long Stop Loss')
 
-		else:
-			print('Scanning market; Managing trades')
+				elif self.mcross[d][0] < 0:
+					# self.order_target_size(target=-self.position.size)
+					self.cancel(self.sl_ord[d])
+					# cls_ord.addinfo(name="Close Stop Loss Order")
+					self.sell(data=self.getdatabyname(d),size=self.order[d].size)
+
+				else:
+					print('Scanning market; Managing trades')
+			import pdb; pdb.set_trace()
 
 	def notify_order(self, order):
 		date = self.data.datetime.datetime().date()
@@ -135,9 +139,9 @@ class MACDstrat(bt.Strategy):
 
 	def notify_data(self, data, status, *args, **kwargs):
 		print('<-----LIVE DATAFEED NOTIFICATION: ', data._getstatusname(status), *args)
-		publish('<-----LIVE DATAFEED NOTIFICATION: {}'.format(data._getstatusname(status)))
-
+		# publish('<-----LIVE DATAFEED NOTIFICATION: {}'.format(data._getstatusname(status)))
 		if status == data.LIVE:
-			publish("Data feed live !")
-			self.counttostop = self.p.stopafter
-			self.datastatus = 1
+			for d in self.getdatanames():
+				publish("{} Data feed live !".format(d))
+				self.counttostop = self.p.stopafter
+				self.datastatus = 1
