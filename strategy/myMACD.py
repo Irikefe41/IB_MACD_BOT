@@ -34,19 +34,22 @@ class MACDstrat(bt.Strategy):
 
 		for d in self.getdatanames():
 
-			# print(self.getdatabyname(d).datetime.datetime(0))
-			today = datetime.now() - timedelta(minutes=10)
-			dt = self.getdatabyname(d).datetime.datetime(0)			
+			today = datetime.now().date()  - timedelta(days=1)
+			_dday = datetime(today.year, today.month, today.day, 9)
+			dt = self.getdatabyname(d).datetime.datetime(0)	
 
-			if dt <= today:
+			if dt >= _dday:
 				portfolio_value = self.broker.get_value()
-				track_time = datetime.now() - timedelta(minutes=50)
+				track_time = datetime.now() - timedelta(minutes=60)
+				# print(self.getdatabyname(d).p.sessionend)
+				print('Log_{} -Timestamp: {} - Position_Size: {} - Portfolio_Value {}'.format(len(self), dt.isoformat(), self.position.size, portfolio_value))
+				publish('Timestamp: {} - Position_Size: {} - Portfolio_Value {}'.format( dt.isoformat(), self.position.size, portfolio_value))
+				print('mcross_{}: {}'.format(d, self.mcross[d][0]))
+				print('macd signal:{}'.format(self.macd[d].macd[0]))
+				print('macd signal:{}'.format(self.macd[d].macd[-1]))
 
-				print('Log{} -Timestamp: {} - Position_Size: {} - Portfolio_Value {}'.format(len(self), dt.isoformat(), self.position.size, portfolio_value))
-				
-				if dt.minute == 0 and dt > track_time:
-					
-					publish("{} Close price: {}\nTimestamp: {}".format(d,self.getdatabyname(d).close[0],dt.isoformat()))
+				if dt.minute == 0 and dt > track_time:					
+					publish("{} Close price: {}\nAt Timestamp: {}".format(d,self.getdatabyname(d).close[0],dt.isoformat()))
 
 				pos = self.getpositionbyname(d).size or 0
 
@@ -58,19 +61,22 @@ class MACDstrat(bt.Strategy):
 						self.sl_ord[d].addinfo(name='Long Stop Loss')
 
 				elif self.mcross[d][0] < 0:
-					# self.order_target_size(target=-self.position.size)
 					self.cancel(self.sl_ord[d])
-					# cls_ord.addinfo(name="Close Stop Loss Order")
 					self.sell(data=self.getdatabyname(d),size=self.order[d].size)
 
 				else:
 					print('Scanning market; Managing trades')
-			import pdb; pdb.set_trace()
+			# import pdb; pdb.set_trace()
+
 
 	def notify_order(self, order):
-		date = self.data.datetime.datetime().date()
+
+		stock = self.getdatanames()
+		date = self.getdatabyname(stock[0]).datetime.datetime(0)
+		# date = self.data.datetime.datetime().date()
 
 		if order.status == order.Accepted:
+
 			print('-'*32,' NOTIFY ORDER ','-'*32)
 			print('{} Order Accepted'.format(order.info['name']))
 			print('{}, Status {}: Ref: {}, Size: {}, Price: {}'.format(
@@ -80,7 +86,7 @@ class MACDstrat(bt.Strategy):
                                                         order.size,
                                                         'NA' if not order.price else round(order.price,5)
                                                         ))
-			publish('{}, Status {}: Ref: {}, Size: {}, Price: {}'.format(
+			publish('Accepted Order at: {}, Status {}: Ref: {}, Size: {}, Price: {}'.format(
                                                         date,
                                                         order.status,
                                                         order.ref,
@@ -98,7 +104,7 @@ class MACDstrat(bt.Strategy):
                                                         'NA' if not order.price else round(order.price,5)
                                                         ))
 			print('Created: {} Price: {} Size: {}'.format(bt.num2date(order.created.dt), order.created.price,order.created.size))
-			publish('Created: {} Price: {} Size: {}'.format(bt.num2date(order.created.dt), order.created.price,order.created.size))
+			publish('Completed Order: {} Price: {} Size: {}'.format(bt.num2date(order.created.dt), order.created.price,order.created.size))
 			print('-'*80)
 
 		if order.status == order.Canceled:
@@ -111,7 +117,7 @@ class MACDstrat(bt.Strategy):
                                                         order.size,
                                                         'NA' if not order.price else round(order.price,5)
                                                         ))
-			publish('{}, Status {}: Ref: {}, Size: {}, Price: {}'.format(
+			publish('Cancelled Order: {}, Status {}: Ref: {}, Size: {}, Price: {}'.format(
                                                         date,
                                                         order.status,
                                                         order.ref,
@@ -129,7 +135,7 @@ class MACDstrat(bt.Strategy):
                                                         order.size,
                                                         'NA' if not order.price else round(order.price,5)
                                                         ))
-			publish('{}, Status {}: Ref: {}, Size: {}, Price: {}'.format(
+			publish('Rejected Order at:{}, Status {}: Ref: {}, Size: {}, Price: {}'.format(
                                                         date,
                                                         order.status,
                                                         order.ref,
